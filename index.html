@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Liftr App</title>
+</head>
+<body>
+    <button>Shoulder Press</button>
+    <button>Squats</button>
+    <script src="/static/socket.io.js"></script>
+    <script>
+        const socket = io('http://liftr.ngrok.io/');
+
+        socket.on('connect', () => {
+            socket.emit('register', {
+                'client_type': 'app',
+                'session_key': 'key' 
+            });
+        });
+    </script>
+</body>
+</html>
