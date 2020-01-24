@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Home</title>
+    <style>
+        div {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Liftr</h1>
+
+    <div>
+        <button onclick="connect()">Connect</button>
+        status: <span id="connected-status">not connected</span>
+    </div>
+    
+    <div id="register" hidden=true>
+        <input type="text" id="session-key">
+        <button id="submit" onclick="register()">Register</button>
+    </div>
+
+    <div id="start-div" hidden=true>
+        <button id="start" onclick="startSession()">Start</button>
+    </div>
+
+    <div id="selection-buttons">
+        <button onclick="selectWorkout('shoulder_press')">Shoulder Press</button>
+        <button onclick="selectWorkout('squats')">Squats</button>
+    </div>
+
+    <script src="/static/socket.io.js"></script>
+    <script>
+        let socket;
+
+        let connect = () => {
+            socket = io('http://liftr.ngrok.io/');
+            socket.on('connect', () => {
+                document.getElementById('connected-status').innerHTML = 'connected';
+                document.getElementById('register').hidden = false;
+            });
+        }
+        
+        let register = () => {
+            socket.emit('register_app', {
+                's_key': document.getElementById('session-key').value
+            }, (data) => {
+                data = JSON.parse(data)
+                if (data.success == true) {
+                    alert('successfully connected');
+                    document.getElementById('register').hidden = true;
+                    document.getElementById('start-div').hidden = false;
+                } else {
+                    alert('connection unsuccessful');
+                }
+            });
+        }
+
+        let startSession = () => {
+            console.log('starting session')
+            socket.emit('start_session');
+        }
+
+        let selectWorkout = (workout) => {
+            // socket.emit();
+        }
+    </script>
+</body>
+</html>

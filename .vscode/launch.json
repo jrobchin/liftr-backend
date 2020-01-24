@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "app.py",
+            "program": "${workspaceFolder}/app.py",
             "console": "integratedTerminal",
             "env": {
                 "FLASK_DEBUG": "True"
