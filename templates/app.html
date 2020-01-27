@@ -30,7 +30,7 @@
 
     <div id="selection-buttons">
         <button onclick="selectWorkout('shoulder_press')">Shoulder Press</button>
-        <button onclick="selectWorkout('squats')">Squats</button>
+        <button onclick="selectWorkout('bicep_curl')">Bicep Curl</button>
     </div>
 
     <script src="/static/socket.io.js"></script>
@@ -61,12 +61,13 @@
         }
 
         let startSession = () => {
-            console.log('starting session')
             socket.emit('start_session');
         }
 
-        let selectWorkout = (workout) => {
-            // socket.emit();
+        let selectExercise = (exercise) => {
+            socket.emit('select_exercise', {
+                workout: exercise
+            });
         }
     </script>
 </body>

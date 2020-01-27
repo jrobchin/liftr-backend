@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('app.log')
+fh = logging.FileHandler('logs/app.log')
 fh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 fh.setFormatter(formatter)
@@ -53,6 +53,12 @@ class Session:
     
     def __repr__(self):
         return str(self)
+
+    def emit_machine(self, event, data=None, callback=None):
+        emit(event, data, room=self.machine.sid, callback=callback)
+
+    def emit_app(self, event, data=None, callback=None):
+        emit(event, data, room=self.mobile_app.sid, callback=callback)
 
 class SessionManager:
     def __init__(self, n_keys=100):
@@ -168,12 +174,24 @@ def handle_register_app(data):
 @socketio.on('start_session')
 @with_client
 def handle_start_session():
-    logger.debug(f"start_session - client: {g.client} session: {g.client.session} namespace: {request.namespace}")
+    logger.debug(f"start_session - client: {g.client} session: {g.client.session}")
     c: Client = g.client
     s: Session = c.session
 
     if isinstance(c, MobileApp):
-        emit('start_session', room=s.machine.sid)
+        s.emit_machine('start_session')
+
+@socketio.on('select_exercise')
+@with_client
+def handle_select_exercise(data):
+    logger.debug(f"select_exercise - client: {g.client} session: {g.client.session}")
+    c: Client = g.client
+    s: Session = c.session
+
+    if isinstance(c, MobileApp):
+        s.emit_machine('select_exercise', {
+            "workout": data["workout"]
+        })
 
 if __name__ == "__main__":
     socketio.run(app, host='0.0.0.0', debug=True, log_output=True)
