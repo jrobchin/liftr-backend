@@ -14,34 +14,71 @@
 <body>
     <h1>Liftr</h1>
 
-    <div>
+    <div id="connect">
         <button onclick="connect()">Connect</button>
         status: <span id="connected-status">not connected</span>
     </div>
     
-    <div id="register" hidden=true>
+    <div id="register" hidden>
         <input type="text" id="session-key">
         <button id="submit" onclick="register()">Register</button>
     </div>
 
-    <div id="start-div" hidden=true>
-        <button id="start" onclick="startSession()">Start</button>
+    <div id="selection-buttons" hidden>
+        <p>Successfully registered, choose a workout...</p>
+        <button onclick="selectExercise('shoulder_press')">Shoulder Press</button>
+        <button onclick="selectExercise('bicep_curl')">Bicep Curl</button>
     </div>
 
-    <div id="selection-buttons">
-        <button onclick="selectWorkout('shoulder_press')">Shoulder Press</button>
-        <button onclick="selectWorkout('bicep_curl')">Bicep Curl</button>
+    <div id="start-exercise" hidden>
+        <button onclick="startExercise()">Start Exercise</button>
+    </div>
+
+    <div id="session" hidden>
+        <h1>critiques</h1>
+        <div>
+            reps: <span id="rep_counter">0</span>
+        </div>
     </div>
 
     <script src="/static/socket.io.js"></script>
     <script>
+        let views = [
+            'connect', 
+            'register',
+            'selection-buttons',
+            'start-exercise',
+            'session'
+        ];
+        let showView = (view) => {
+            views.forEach(view_id => {
+                e = document.getElementById(view_id)
+                if (e) {
+                    if (view_id == view) {
+                        e.hidden = false;
+                    } else {
+                        e.hidden = true;
+                    }
+                }
+            });
+        }
+
         let socket;
 
         let connect = () => {
             socket = io('http://liftr.ngrok.io/');
+
             socket.on('connect', () => {
                 document.getElementById('connected-status').innerHTML = 'connected';
-                document.getElementById('register').hidden = false;
+                showView('register')
+            });
+
+            socket.on('make_critique', (data) => {
+                let elem = "<div>" +
+                           "<img width=400 src='http://"+ data['image'] +"'>" +
+                           "<p>"+ data['caption'] +"</p>" +
+                           "</div>";
+                document.getElementById('session').innerHTML += elem;
             });
         }
         
@@ -51,23 +88,22 @@
             }, (data) => {
                 data = JSON.parse(data)
                 if (data.success == true) {
-                    alert('successfully connected');
-                    document.getElementById('register').hidden = true;
-                    document.getElementById('start-div').hidden = false;
+                    showView('selection-buttons')
                 } else {
-                    alert('connection unsuccessful');
                 }
             });
         }
 
-        let startSession = () => {
-            socket.emit('start_session');
-        }
-
         let selectExercise = (exercise) => {
             socket.emit('select_exercise', {
-                workout: exercise
-            });
+                exercise
+            }, () => showView('start-exercise'));
+        }
+
+        let startExercise = () => {
+            socket.emit('start_exercise', {
+                reps: 10
+            }, () => showView('session'))
         }
     </script>
 </body>

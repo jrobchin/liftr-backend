@@ -13,6 +13,7 @@ import functools
 
 from flask import Flask, request, send_from_directory, render_template, g
 from flask_socketio import SocketIO, emit
+from flask_pymongo import PyMongo
 
 from constants import LETTERS
 from messages import response_message
@@ -98,17 +99,20 @@ class SessionManager:
         elif isinstance(client, MobileApp):
             self._sessions[session.s_key].mobile_app = client
 
-def with_client(func):
+def with_session(func):
     @functools.wraps(func)
     def decorated(*args, **kwargs):
         logger.debug(f"getting client with sid: {request.sid}")
         client = s_manager.clients.get(request.sid, None)
         g.client = client
+        g.session = g.client.session
         return func(*args, **kwargs)
     return decorated
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+app.config['MONGO_URI'] = 'mongodb://localhost:27017/liftr'
+mongo = PyMongo(app)
 socketio = SocketIO(app)
 
 s_manager = SessionManager()
@@ -126,7 +130,8 @@ def debug():
 
 @socketio.on('connect')
 def connect_handler():
-    logger.debug(f"connection from sid: {request.sid}")
+    logger.debug(f"connection from sid: {request.sid} ip: {request.remote_addr}")
+    return response_message(message="Hello World")
 
 @socketio.on('disconnect')
 def disconnect_handler():
@@ -157,6 +162,9 @@ def handle_register_app(data):
         if session is not None:
             mobile_app = MobileApp(request.sid, session)
             s_manager.add_client(session, mobile_app)
+
+            session.emit_machine('start_session')
+
             return response_message(
                 message="Successfully registered"
             )
@@ -172,26 +180,45 @@ def handle_register_app(data):
         )
 
 @socketio.on('start_session')
-@with_client
+@with_session
 def handle_start_session():
     logger.debug(f"start_session - client: {g.client} session: {g.client.session}")
     c: Client = g.client
     s: Session = c.session
 
-    if isinstance(c, MobileApp):
+    if isinstance(g.client, MobileApp):
         s.emit_machine('start_session')
 
 @socketio.on('select_exercise')
-@with_client
+@with_session
 def handle_select_exercise(data):
-    logger.debug(f"select_exercise - client: {g.client} session: {g.client.session}")
-    c: Client = g.client
-    s: Session = c.session
-
-    if isinstance(c, MobileApp):
-        s.emit_machine('select_exercise', {
-            "workout": data["workout"]
+    logger.debug(f"select_exercise - client: {g.client} session: {g.client.session} data: {data}")
+    if isinstance(g.client, MobileApp):
+        g.session.emit_machine('select_exercise', {
+            "exercise": data["exercise"]
         })
+
+@socketio.on('start_exercise')
+@with_session
+def handle_start_exercise(data):
+    logger.debug(f"start_exercise - client: {g.client} session: {g.client.session} data: {data}")
+    if isinstance(g.client, MobileApp):
+        g.session.emit_machine('start_exercise', {
+            "reps": data["reps"]
+        })
+
+@socketio.on('make_critique')
+@with_session
+def handle_make_critique(data):
+    logger.debug(f"make_critique - client: {g.client} session: {g.client.session} data: {data}")
+    mongo.db.critiques.insert_one({
+        "exercise": data["exercise"],
+        "caption": data["caption"],
+        "image": data["image"]
+    })
+
+    g.session.emit_app('make_critique', data)
+
 
 if __name__ == "__main__":
     socketio.run(app, host='0.0.0.0', debug=True, log_output=True)
