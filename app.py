@@ -56,10 +56,12 @@ class Session:
         return str(self)
 
     def emit_machine(self, event, data=None, callback=None):
-        emit(event, data, room=self.machine.sid, callback=callback)
+        if self.machine is not None:
+            emit(event, data, room=self.machine.sid, callback=callback)
 
     def emit_app(self, event, data=None, callback=None):
-        emit(event, data, room=self.mobile_app.sid, callback=callback)
+        if self.mobile_app is not None:
+            emit(event, data, room=self.mobile_app.sid, callback=callback)
 
 class SessionManager:
     def __init__(self, n_keys=100):
@@ -111,8 +113,8 @@ def with_session(func):
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-app.config['MONGO_URI'] = 'mongodb://localhost:27017/liftr'
-mongo = PyMongo(app)
+# app.config['MONGO_URI'] = 'mongodb://localhost:27017/liftr'
+# mongo = PyMongo(app)
 socketio = SocketIO(app)
 
 s_manager = SessionManager()
@@ -211,13 +213,23 @@ def handle_start_exercise(data):
 @with_session
 def handle_make_critique(data):
     logger.debug(f"make_critique - client: {g.client} session: {g.client.session} data: {data}")
-    mongo.db.critiques.insert_one({
-        "exercise": data["exercise"],
-        "caption": data["caption"],
-        "image": data["image"]
-    })
+    # mongo.db.critiques.insert_one({
+    #     "exercise": data["exercise"],
+    #     "caption": data["caption"],
+    #     "image": data["image"]
+    # })
 
+    g.session.emit_app('update_reps', { "reps": 2000 })
     g.session.emit_app('make_critique', data)
+
+@socketio.on('update_reps')
+@with_session
+def handle_start_exercise(data):
+    logger.debug(f"update_reps - client: {g.client} session: {g.client.session} data: {data}")
+    if isinstance(g.client, Machine):
+        g.session.emit_app('update_reps', {
+            "reps": data["reps"]
+        })
 
 
 if __name__ == "__main__":
