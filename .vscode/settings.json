@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "pyenv/bin/python"
+    "python.pythonPath": "pyenv/bin/python",
+    "python.linting.enabled": true
 }
