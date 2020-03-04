@@ -80,6 +80,10 @@
                            "</div>";
                 document.getElementById('session').innerHTML += elem;
             });
+
+            socket.on('update_reps', (data) => {
+                document.getElementById('rep_counter').innerHTML = data["reps"];
+            });
         }
         
         let register = () => {

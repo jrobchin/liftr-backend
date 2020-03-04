@@ -17,7 +17,7 @@ from flask_pymongo import PyMongo
 
 from constants import LETTERS
 from messages import response_message
-from sessions import Client, Machine, MobileApp, with_session, sess_manager
+from sessions import Client, Session, Machine, MobileApp, with_session, sess_manager
 
 
 app = Flask(__name__)
@@ -131,7 +131,7 @@ def handle_make_critique(data):
 
 @socketio.on('update_reps')
 @with_session
-def handle_start_exercise(data):
+def update_reps(data):
     logger.debug(f"update_reps - client: {g.client} session: {g.client.session} data: {data}")
     if isinstance(g.client, Machine):
         g.session.emit_app('update_reps', {
